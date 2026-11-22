@@ -9,7 +9,7 @@
     document.head.append(glassModeScript);
   }
 
-  for (const href of ["assets/css/navigation.css", "assets/css/ecosystem-glass.css", "assets/css/dimension-effects.css", "assets/css/feature-feedback.css", "assets/css/dimension-design-system.css", "assets/css/all-pages-redesign.css", "assets/css/world-wallpaper-foundation.css", "assets/css/selective-wallpaper-cards.css"]) {
+  for (const href of ["assets/css/navigation.css", "assets/css/ecosystem-glass.css", "assets/css/dimension-effects.css", "assets/css/feature-feedback.css", "assets/css/dimension-design-system.css", "assets/css/all-pages-redesign.css", "assets/css/world-wallpaper-foundation.css", "assets/css/selective-wallpaper-cards.css", "assets/css/rounded-interface-polish.css"]) {
     if (!document.querySelector(`link[href="${href}"]`)) {
       const link = document.createElement("link");
       link.rel = "stylesheet";

@@ -62,16 +62,12 @@
       <a href="https://dicestack88.github.io/launcher.html"><span>⌘</span><span><strong>Launcher</strong><small>Eaglercraft clients & games</small></span><b>↗</b></a>
       <a href="https://dicestack88.github.io/socials.html"><span>▶</span><span><strong>YouTube</strong><small>Videos & creator updates</small></span><b>↗</b></a>
     </div>`;
-  nav.append(ecosystem);
-
   const menu = document.createElement("button");
   menu.type = "button";
   menu.className = "dimension-sidebar-toggle";
   menu.setAttribute("aria-label", "Open navigation menu");
   menu.setAttribute("aria-expanded", "false");
   menu.innerHTML = '<span aria-hidden="true">☰</span><span>Menu</span>';
-  nav.append(menu);
-
   const links = [
     ["Home", "index.html", ["index.html", ""]],
     ["Discover", "discover.html", ["discover.html"]],
@@ -87,6 +83,10 @@
   const linkElements = [];
 
   for (const [label, href, matches] of links) {
+    if (label === "Discover") {
+      nav.append(ecosystem);
+      nav.append(menu);
+    }
     const anchor = document.createElement("a");
     anchor.className = "dimension-nav-link";
     anchor.href = href;

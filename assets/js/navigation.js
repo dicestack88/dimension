@@ -9,7 +9,7 @@
     document.head.append(glassModeScript);
   }
 
-  for (const href of ["assets/css/navigation.css", "assets/css/ecosystem-glass.css", "assets/css/dimension-effects.css", "assets/css/feature-feedback.css", "assets/css/dimension-design-system.css", "assets/css/all-pages-redesign.css", "assets/css/world-wallpaper-foundation.css", "assets/css/selective-wallpaper-cards.css"]) {
+  for (const href of ["assets/css/navigation.css", "assets/css/ecosystem-glass.css", "assets/css/dimension-effects.css", "assets/css/feature-feedback.css", "assets/css/dimension-design-system.css", "assets/css/all-pages-redesign.css", "assets/css/world-wallpaper-foundation.css", "assets/css/selective-wallpaper-cards.css", "assets/css/rounded-interface-polish.css"]) {
     if (!document.querySelector(`link[href="${href}"]`)) {
       const link = document.createElement("link");
       link.rel = "stylesheet";
@@ -62,23 +62,19 @@
       <a href="https://dicestack88.github.io/launcher.html"><span>⌘</span><span><strong>Launcher</strong><small>Eaglercraft clients & games</small></span><b>↗</b></a>
       <a href="https://dicestack88.github.io/socials.html"><span>▶</span><span><strong>YouTube</strong><small>Videos & creator updates</small></span><b>↗</b></a>
     </div>`;
-  nav.append(ecosystem);
-
   const menu = document.createElement("button");
   menu.type = "button";
   menu.className = "dimension-sidebar-toggle";
   menu.setAttribute("aria-label", "Open navigation menu");
   menu.setAttribute("aria-expanded", "false");
   menu.innerHTML = '<span aria-hidden="true">☰</span><span>Menu</span>';
-  nav.append(menu);
-
   const links = [
+    ["Home", "index.html", ["index.html", ""]],
     ["Discover", "discover.html", ["discover.html"]],
     ["Clips", "clips.html", ["clips.html"]],
     ["Messages", "messages.html", ["messages.html"]],
     ["My profile", "profile.html", ["profile.html"]],
     ["Notifications", "notifications.html", ["notifications.html"]],
-    ["Home", "index.html", ["index.html", ""]],
     ["Settings", "settings.html", ["settings.html"]],
     ["Analytics", "analytics.html", ["analytics.html"]],
   ];
@@ -87,6 +83,10 @@
   const linkElements = [];
 
   for (const [label, href, matches] of links) {
+    if (label === "Discover") {
+      nav.append(ecosystem);
+      nav.append(menu);
+    }
     const anchor = document.createElement("a");
     anchor.className = "dimension-nav-link";
     anchor.href = href;

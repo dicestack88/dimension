@@ -1,0 +1,111 @@
+/* Final interface polish: softer geometry, clearer Home cards and calmer Discover masthead. */
+
+/* Remove the oversized decorative page index that was competing with the Discover title. */
+.discover-page .discover-page-heading::after { content:none !important; display:none !important; }
+
+/* Home: give every destination a proper card surface and centre its content. */
+.home-public .feature-grid {
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:16px;
+}
+.home-public .feature-card,
+.home-public .feature-card:first-child,
+.home-public .feature-card:nth-child(2),
+.home-public .feature-card:last-child {
+  min-width:0;
+  min-height:310px;
+  padding:30px 25px 28px;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  text-align:center;
+  border:1px solid rgba(205,230,194,.2) !important;
+  border-radius:24px !important;
+  overflow:hidden;
+}
+.home-public .feature-card h3 { margin:12px 0 8px; }
+.home-public .feature-card p { max-width:310px; margin:0 auto 18px; }
+.home-public .feature-card .feature-number { align-self:center; }
+.home-public .feature-card .feature-cta { margin-top:auto; padding-top:18px; }
+.home-public .feature-card .feature-symbol { margin:12px 0 4px; }
+
+/* Signed-in Home shortcuts: separate, rounded tiles instead of text on a bare divider grid. */
+.home-member .home-shortcuts {
+  grid-template-columns:repeat(3,minmax(0,1fr)) !important;
+  gap:14px !important;
+  border:0 !important;
+}
+.home-member .home-shortcut,
+.home-member .home-shortcut-featured {
+  min-width:0;
+  min-height:176px;
+  padding:25px 22px !important;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  text-align:center;
+  border:1px solid rgba(173,208,165,.2) !important;
+  border-radius:22px !important;
+  background:rgba(9,25,14,.58) !important;
+  box-shadow:0 14px 36px rgba(0,0,0,.16),inset 0 1px rgba(255,255,255,.06);
+}
+.home-member .home-shortcut:hover { transform:translateY(-4px); }
+.home-member .home-shortcut-featured {
+  border-color:rgba(157,205,143,.42) !important;
+  background:linear-gradient(145deg,rgba(43,91,49,.58),rgba(8,25,14,.68)) !important;
+}
+.home-member .home-shortcut-kicker { margin-bottom:9px; }
+.home-member .home-shortcut strong { margin-top:0; }
+.home-member .home-shortcut-description { max-width:230px; margin:7px auto 0; }
+.home-member .home-shortcut-arrow { top:15px; right:17px; }
+
+/* A consistent rounded language across the interface without turning everything into pills. */
+:where(
+  .site-header:has(.dimension-unified-nav),
+  .dimension-ecosystem-switcher .ecosystem-switcher-panel,
+  .home-welcome,.home-bottom-panel,.ecosystem-panel,.ecosystem-link,
+  .discover-page-heading,.discover-search-panel,.discover-intro,.discover-results-surface,
+  .clips-feed,.clips-panel,.clips-side-note,.clips-upload-panel,
+  .messages-sidebar,.chat-panel,.message-composer,
+  .creator-profile,.settings-profile-preview,.settings-panel,
+  .analytics-stat,.analytics-card,.analytics-owner-tools,
+  .moderation-section,.moderation-reports > *,.moderation-grid > *,
+  .auth-card,.dimension-feedback-dialog
+) { border-radius:22px !important; }
+
+:where(
+  .feature-card,.home-shortcut,.clip-card,.creator-card,.message-card,
+  .notification-card,.report-card,.moderation-card,.analytics-card,
+  .ecosystem-link,.conversation-list > *
+) { border-radius:18px !important; }
+
+:where(button,.button,.dimension-auth-link,.dimension-logout,.dimension-sidebar-toggle,
+  .dimension-ecosystem-switcher > summary,.clips-tab,.clips-load-more,.clips-refresh,
+  .notifications-read-all) { border-radius:999px !important; }
+
+:where(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]),
+  textarea,select,.clips-search-form) { border-radius:15px !important; }
+
+:where(.dimension-nav-link) { border-radius:12px !important; }
+
+@media (max-width:760px) {
+  .home-public .feature-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .home-public .feature-card,
+  .home-public .feature-card:first-child,
+  .home-public .feature-card:nth-child(2),
+  .home-public .feature-card:last-child { min-height:260px; padding:24px 18px; }
+  .home-member .home-shortcuts { grid-template-columns:repeat(2,minmax(0,1fr)) !important; }
+}
+@media (max-width:480px) {
+  .home-public .feature-grid,.home-member .home-shortcuts { grid-template-columns:1fr !important; }
+  .home-public .feature-card,
+  .home-public .feature-card:first-child,
+  .home-public .feature-card:nth-child(2),
+  .home-public .feature-card:last-child { min-height:230px; }
+}
+@media (prefers-reduced-motion:reduce) {
+  .home-member .home-shortcut { transition:none !important; }
+}

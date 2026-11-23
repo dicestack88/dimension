@@ -53,6 +53,9 @@
     const {data,error}=await client.auth.getUser();user=data?.user;
     if(error||!user){window.location.replace(page("login.html"));return;}
     await load();
+    client.channel("dimension-notification-centre-" + user.id)
+      .on("postgres_changes", { event: "*", schema: "public", table: "notifications", filter: "recipient_id=eq." + user.id }, () => load())
+      .subscribe();
   }
   readAll.addEventListener("click",async()=>{
     readAll.disabled=true;readAll.textContent="Updating…";

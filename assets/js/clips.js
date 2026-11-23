@@ -371,24 +371,53 @@
     commentsList.className = "clip-comments-list";
     const commentForm = document.createElement("form");
     commentForm.className = "clip-comment-form";
+    const gifButton = document.createElement("button");
+    gifButton.type = "button"; gifButton.className = "clip-gif-button"; gifButton.textContent = "GIF";
+    const gifPicker = document.createElement("div"); gifPicker.className = "clip-gif-picker"; gifPicker.hidden = true;
+    const gifSearch = document.createElement("input"); gifSearch.type = "search"; gifSearch.maxLength = 80; gifSearch.placeholder = "Search GIFs…"; gifSearch.setAttribute("aria-label", "Search GIFs");
+    const gifResults = document.createElement("div"); gifResults.className = "clip-gif-results";
+    const gifStatus = document.createElement("p"); gifStatus.className = "clip-gif-status"; gifStatus.textContent = "Loading GIFs…";
+    gifPicker.append(gifSearch, gifStatus, gifResults);
+    const gifPreview = document.createElement("div"); gifPreview.className = "clip-gif-selected"; gifPreview.hidden = true;
+    let selectedGif = null;
     const commentInput = document.createElement("textarea");
     commentInput.maxLength = 500;
     commentInput.rows = 2;
     commentInput.placeholder = "Add a comment…";
-    commentInput.required = true;
+    commentInput.required = false;
     commentInput.setAttribute("aria-label", "Write a comment");
     const commentSubmit = document.createElement("button");
     commentSubmit.type = "submit";
     commentSubmit.textContent = "Post";
-    commentForm.append(commentInput, commentSubmit);
-    commentsPanel.append(commentsHeader, commentsList, commentForm);
+    commentForm.append(gifButton, commentInput, commentSubmit);
+    commentsPanel.append(commentsHeader, commentsList, gifPicker, gifPreview, commentForm);
 
     let replyTo = null;
+    const renderGifResults = async query => {
+      gifResults.replaceChildren(); gifStatus.textContent = "Searching…";
+      try {
+        const endpoint = "https://dicestack-netlify-api.netlify.app/.netlify/functions/gif-search" + (query ? "?q="+encodeURIComponent(query) : "");
+        const response = await fetch(endpoint, { headers: { Accept: "application/json" } });
+        const payload = await response.json();
+        if (!response.ok) throw new Error(payload.error || "GIF search unavailable");
+        gifStatus.textContent = payload.results?.length ? "Choose a GIF to add to your comment." : "No GIFs found. Try another search.";
+        for (const item of payload.results || []) {
+          const choice = document.createElement("button"); choice.type = "button"; choice.className = "clip-gif-choice";
+          const image = document.createElement("img"); image.src = new URL(item.preview, "https://dicestack-netlify-api.netlify.app").href; image.alt = item.title || "GIF"; image.loading = "lazy";
+          choice.append(image); choice.setAttribute("aria-label", "Use GIF: "+(item.title||"GIF"));
+          choice.addEventListener("click", () => { selectedGif = item; gifPreview.replaceChildren(); const preview = document.createElement("img"); preview.src = image.src; preview.alt = item.title || "Selected GIF"; gifPreview.append(preview); const remove = document.createElement("button"); remove.type = "button"; remove.textContent = "Remove GIF"; remove.addEventListener("click",()=>{selectedGif=null;gifPreview.hidden=true;gifPreview.replaceChildren();});gifPreview.append(remove);gifPreview.hidden=false;gifPicker.hidden=true;gifButton.textContent="GIF selected"; });
+          gifResults.append(choice);
+        }
+      } catch (error) { gifStatus.textContent = error.message || "GIF search is unavailable."; }
+    };
+    gifButton.addEventListener("click", () => { gifPicker.hidden = !gifPicker.hidden; if (!gifPicker.hidden && !gifResults.children.length) renderGifResults(gifSearch.value.trim()); });
+    let gifSearchTimer;
+    gifSearch.addEventListener("input", () => { clearTimeout(gifSearchTimer); gifSearchTimer=setTimeout(()=>renderGifResults(gifSearch.value.trim()),250); });
     const loadComments = async () => {
       commentsList.replaceChildren();
       const loading = document.createElement("p"); loading.className = "clip-comments-empty"; loading.textContent = "Loading comments…"; commentsList.append(loading);
       const [{ data, error }, { data: heartRows, error: heartError }, { data: ownRole, error: ownRoleError }] = await Promise.all([
-        client.from("clip_comments").select("id, user_id, body, created_at, parent_comment_id").eq("clip_id", clip.id).order("created_at", { ascending: true }).limit(150),
+        client.from("clip_comments").select("id, user_id, body, gif_provider, gif_id, gif_alt, created_at, parent_comment_id").eq("clip_id", clip.id).order("created_at", { ascending: true }).limit(150),
         client.from("clip_comment_likes").select("comment_id, user_id").limit(1000),
         client.from("dimension_member_roles").select("role").eq("user_id", currentUser.id).maybeSingle()
       ]);
@@ -410,7 +439,7 @@
           const authorProfile=authorMap.get(item.user_id);
           const author=document.createElement("strong");author.textContent=authorProfile?.display_name||"Darklands member";author.append(roleBadge(authorProfile?.role));
           const handle=document.createElement("span");handle.className="clip-comment-handle";handle.textContent="@"+(authorProfile?.username||"member")+" · "+new Date(item.created_at).toLocaleString(undefined,{dateStyle:"medium",timeStyle:"short"});
-          const body=document.createElement("p");body.textContent=item.body;
+          const body=document.createElement("p");body.textContent=item.body||"";
           const controls=document.createElement("div");controls.className="clip-comment-controls";
           const hearts=heartRows.filter(row=>row.comment_id===item.id);let hearted=hearts.some(row=>row.user_id===currentUser.id);let heartCount=hearts.length;
           const heart=document.createElement("button");heart.type="button";heart.className="clip-comment-control"+(hearted?" liked":"");heart.textContent=(hearted?"♥ ":"♡ ")+heartCount;
@@ -452,7 +481,7 @@
             controls.append(report);
           }
           if(!isReply){const reply=document.createElement("button");reply.type="button";reply.className="clip-comment-control";reply.textContent="Reply";reply.addEventListener("click",()=>{replyTo=item.id;commentInput.placeholder="Replying to "+(authorProfile?.display_name||"comment")+"…";commentInput.focus();commentSubmit.textContent="Reply";});controls.append(reply);}
-          row.append(author,handle,body,controls);
+          if(item.gif_provider==="tenor"&&item.gif_id){const gif=document.createElement("img");gif.className="clip-comment-gif";gif.src="https://dicestack-netlify-api.netlify.app/.netlify/functions/gif-media?id="+encodeURIComponent(item.gif_id);gif.alt=item.gif_alt||"GIF in comment";gif.loading="lazy";gif.decoding="async";gif.referrerPolicy="no-referrer";gif.addEventListener("error",()=>{gif.alt="GIF unavailable";});row.append(author,handle);if(item.body)row.append(body);row.append(gif,controls);}else row.append(author,handle,body,controls);
           if(!isReply){for(const child of replies.get(item.id)||[])row.append(renderComment(child,true));}
           return row;
         };
@@ -472,16 +501,18 @@
     commentForm.addEventListener("submit", async event => {
       event.preventDefault();
       const body = commentInput.value.trim();
-      if (!body || commentSubmit.disabled) return;
+      if ((!body && !selectedGif) || commentSubmit.disabled) return;
       commentSubmit.disabled = true;
       commentSubmit.textContent = "Posting…";
       const { error } = await client.from("clip_comments").insert({
-        clip_id: clip.id, user_id: currentUser.id, body, parent_comment_id: replyTo
+        clip_id: clip.id, user_id: currentUser.id, body, parent_comment_id: replyTo,
+        gif_provider: selectedGif ? "tenor" : null, gif_id: selectedGif?.id || null, gif_alt: selectedGif?.title || null
       });
       if (error) {
         say("Couldn't post your comment. Please try again.");
       } else {
         commentInput.value = "";
+        selectedGif = null; gifPreview.hidden = true; gifPreview.replaceChildren(); gifButton.textContent = "GIF";
         replyTo = null; commentInput.placeholder = "Add a comment…"; commentSubmit.textContent = "Post";
         await loadComments();
       }

@@ -597,10 +597,20 @@
       commentSubmit.disabled = true;
       commentSubmit.textContent = "Posting…";
       try {
-        const { error } = await client.from("clip_comments").insert({
-          clip_id: clip.id, user_id: currentUser.id, body, parent_comment_id: replyTo,
-          gif_provider: selectedGif?.provider || null, gif_id: selectedGif?.id || null, gif_alt: selectedGif?.title || null
-        });
+        // Bound the database request so a stalled network cannot leave the
+        // composer permanently showing "Posting…".
+        const insertController = new AbortController();
+        const insertTimeout = window.setTimeout(() => insertController.abort(), 20000);
+        let insertResult;
+        try {
+          insertResult = await client.from("clip_comments").insert({
+            clip_id: clip.id, user_id: currentUser.id, body, parent_comment_id: replyTo,
+            gif_provider: selectedGif?.provider || null, gif_id: selectedGif?.id || null, gif_alt: selectedGif?.title || null
+          }).abortSignal(insertController.signal);
+        } finally {
+          window.clearTimeout(insertTimeout);
+        }
+        const { error } = insertResult;
         if (error) {
           console.error("Dimension comment insert failed:", error);
           say(error.message || "Couldn't post your comment. Please try again.");

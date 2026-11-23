@@ -43,3 +43,18 @@ Open index.html in a browser, or serve this folder with a local HTTP server. Sup
 ## Deployment
 
 https://dicestack88.github.io/dimension/
+
+
+## GIF comments and device notifications
+
+The clip feed supports threaded text comments. Migration `020_gif_comments_and_device_push.sql` adds Tenor GIF references to comments and per-device Web Push subscriptions.
+
+Before enabling these features:
+
+1. Run migration 020 in the linked Supabase project's SQL editor.
+2. Configure the Netlify environment variables and Supabase Vault secrets described in the `dicestack-netlify-api` repository README.
+3. Deploy the updated Netlify API.
+4. Push notifications require a supported browser, a secure context, and explicit permission. On iPhone/iPad, install Dimension to the Home Screen before enabling push.
+5. GIF search requires a Tenor API key configured as `TENOR_API_KEY` in Netlify. GIF media is proxied through Netlify and capped at 3 MB per response.
+
+The in-app notification badge and notification centre use Supabase Realtime after migration 020 is applied. Browser push is delivered separately through the Netlify function and VAPID configuration.

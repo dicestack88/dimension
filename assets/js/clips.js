@@ -784,7 +784,10 @@
       if (uploadError) throw uploadError;
       uploaded = true;
       const { error: insertError } = await client.from("clips").insert({
-        user_id: currentUser.id, caption, storage_path: storagePath
+        user_id: currentUser.id,
+        caption,
+        storage_path: storagePath,
+        status: "pending"
       });
       if (insertError) throw insertError;
       form.reset();

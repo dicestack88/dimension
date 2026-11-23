@@ -417,7 +417,7 @@
     const fetchGiphy = async (path, params) => {
       const key = getGiphyKey();
       if (!key) throw new Error("GIPHY isn't configured yet. Add the public GIPHY API key to assets/js/giphy-config.js.");
-      const url = new URL("https://api.giphy.com/v1/gifs/" + path);
+      const url = new URL("https://api.giphy.com/v1/gifs" + (path ? "/" + path : ""));
       url.search = new URLSearchParams({ api_key: key, rating: "g", ...params }).toString();
       const response = await fetch(url.toString(), { headers: { Accept: "application/json" }, cache: "no-store" });
       const payload = await response.json();
@@ -442,6 +442,7 @@
           selectedGif = { provider: "giphy", id: String(item.id), title: String(item.title || "GIPHY GIF").slice(0, 100), analytics: item.analytics };
           gifPreview.replaceChildren();
           const preview = document.createElement("img"); preview.src = previewUrl || ""; preview.alt = selectedGif.title;
+          preview.addEventListener("load", () => trackGiphyAction(item.analytics, "onload"), { once: true });
           gifPreview.append(preview, giphyAttribution());
           const remove = document.createElement("button"); remove.type = "button"; remove.textContent = "Remove GIF";
           remove.addEventListener("click", () => { selectedGif = null; gifPreview.hidden = true; gifPreview.replaceChildren(); });
@@ -602,9 +603,9 @@
         say("Couldn't post your comment. Please try again.");
       } else {
         commentInput.value = "";
+        if (selectedGif?.provider === "giphy") trackGiphyAction(selectedGif.analytics, "onsent");
         selectedGif = null; gifPreview.hidden = true; gifPreview.replaceChildren(); gifButton.textContent = "GIF";
         replyTo = null; commentInput.placeholder = "Add a comment…"; commentSubmit.textContent = "Post";
-        if (selectedGif?.provider === "giphy") trackGiphyAction(selectedGif.analytics, "onsent");
         await loadComments();
       }
       commentSubmit.disabled = false;

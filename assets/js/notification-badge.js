@@ -23,7 +23,6 @@
       channel = client.channel("dimension-notification-badge-" + userId)
         .on("postgres_changes", { event: "*", schema: "public", table: "notifications", filter: "recipient_id=eq." + userId }, () => {
           update();
-          document.dispatchEvent(new Event("darklands:notifications-updated"));
         })
         .subscribe();
     }
@@ -31,5 +30,4 @@
 
   update();
   document.addEventListener("visibilitychange", () => { if (!document.hidden) update(); });
-  document.addEventListener("darklands:notifications-updated", update);
 })();

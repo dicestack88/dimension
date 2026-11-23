@@ -380,6 +380,8 @@
     gifPicker.append(gifSearch, gifStatus, gifResults);
     const gifPreview = document.createElement("div"); gifPreview.className = "clip-gif-selected"; gifPreview.hidden = true;
     let selectedGif = null;
+    // Keep reply state scoped to this clip card; normal comments use null.
+    let replyTo = null;
     const commentInput = document.createElement("textarea");
     commentInput.maxLength = 500;
     commentInput.rows = 2;

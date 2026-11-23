@@ -596,21 +596,42 @@
       if ((!body && !selectedGif) || commentSubmit.disabled) return;
       commentSubmit.disabled = true;
       commentSubmit.textContent = "Posting…";
-      const { error } = await client.from("clip_comments").insert({
-        clip_id: clip.id, user_id: currentUser.id, body, parent_comment_id: replyTo,
-        gif_provider: selectedGif?.provider || null, gif_id: selectedGif?.id || null, gif_alt: selectedGif?.title || null
-      });
-      if (error) {
-        say("Couldn't post your comment. Please try again.");
-      } else {
+      try {
+        const { error } = await client.from("clip_comments").insert({
+          clip_id: clip.id, user_id: currentUser.id, body, parent_comment_id: replyTo,
+          gif_provider: selectedGif?.provider || null, gif_id: selectedGif?.id || null, gif_alt: selectedGif?.title || null
+        });
+        if (error) {
+          console.error("Dimension comment insert failed:", error);
+          say(error.message || "Couldn't post your comment. Please try again.");
+          return;
+        }
+
+        // The insert succeeded. Reset the composer immediately; refreshing the
+        // thread must never keep the Post button stuck in its loading state.
         commentInput.value = "";
         if (selectedGif?.provider === "giphy") trackGiphyAction(selectedGif.analytics, "onsent");
-        selectedGif = null; gifPreview.hidden = true; gifPreview.replaceChildren(); gifButton.textContent = "GIF";
-        replyTo = null; commentInput.placeholder = "Add a comment…"; commentSubmit.textContent = "Post";
-        await loadComments();
+        selectedGif = null;
+        gifPreview.hidden = true;
+        gifPreview.replaceChildren();
+        gifButton.textContent = "GIF";
+        replyTo = null;
+        commentInput.placeholder = "Add a comment…";
+        commentSubmit.textContent = "Post";
+        commentSubmit.disabled = false;
+
+        // Refresh independently so a slow profile/GIPHY lookup cannot block posting.
+        loadComments().catch(error => {
+          console.error("Dimension comment refresh failed:", error);
+          say("Your comment was posted, but the comments couldn't refresh. Reload the page to see it.");
+        });
+      } catch (error) {
+        console.error("Dimension comment submission failed:", error);
+        say(error?.message || "Couldn't post your comment. Please try again.");
+      } finally {
+        commentSubmit.disabled = false;
+        commentSubmit.textContent = "Post";
       }
-      commentSubmit.disabled = false;
-      commentSubmit.textContent = "Post";
     });
 
     const fullscreen = document.createElement("button");

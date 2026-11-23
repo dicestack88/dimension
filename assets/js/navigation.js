@@ -9,13 +9,20 @@
     document.head.append(glassModeScript);
   }
 
-  for (const href of ["assets/css/navigation.css", "assets/css/ecosystem-glass.css", "assets/css/dimension-effects.css", "assets/css/feature-feedback.css", "assets/css/dimension-design-system.css", "assets/css/all-pages-redesign.css", "assets/css/world-wallpaper-foundation.css", "assets/css/selective-wallpaper-cards.css", "assets/css/rounded-interface-polish.css"]) {
+  for (const href of ["assets/css/push-notifications.css", "assets/css/navigation.css", "assets/css/ecosystem-glass.css", "assets/css/dimension-effects.css", "assets/css/feature-feedback.css", "assets/css/dimension-design-system.css", "assets/css/all-pages-redesign.css", "assets/css/world-wallpaper-foundation.css", "assets/css/selective-wallpaper-cards.css", "assets/css/rounded-interface-polish.css"]) {
     if (!document.querySelector(`link[href="${href}"]`)) {
       const link = document.createElement("link");
       link.rel = "stylesheet";
       link.href = href;
       document.head.append(link);
     }
+  }
+
+  if (!document.querySelector('script[data-dimension-push-notifications]')) {
+    const pushScript = document.createElement("script");
+    pushScript.src = "assets/js/push-notifications.js";
+    pushScript.dataset.dimensionPushNotifications = "true";
+    document.body.append(pushScript);
   }
 
   if (!document.querySelector('script[data-dimension-page-effects]')) {

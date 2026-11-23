@@ -24,6 +24,12 @@
     pushScript.dataset.dimensionPushNotifications = "true";
     document.body.append(pushScript);
   }
+  if (!document.querySelector('script[data-dimension-notification-badge]')) {
+    const badgeScript = document.createElement("script");
+    badgeScript.src = "assets/js/notification-badge.js";
+    badgeScript.dataset.dimensionNotificationBadge = "true";
+    document.body.append(badgeScript);
+  }
 
   if (!document.querySelector('script[data-dimension-page-effects]')) {
     const effectsScript = document.createElement("script");
@@ -54,7 +60,9 @@
 
   const oldLogout = header.querySelector('button[id*="logout"]');
   const logoutButton = oldLogout || document.createElement("button");
-  const notificationCount = header.querySelector(".notification-nav-count");
+  const notificationCount = header.querySelector(".notification-nav-count") || document.createElement("span");
+  notificationCount.className = "notification-nav-count";
+  notificationCount.hidden = true;
 
   nav.replaceChildren();
   nav.append(brand);

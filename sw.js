@@ -4,8 +4,6 @@ self.addEventListener("push", event => {
   const title = String(payload.title || "Dimension").slice(0, 80);
   const options = {
     body: String(payload.body || "You have a new notification.").slice(0, 180),
-    icon: "assets/dimension-notification.png",
-    badge: "assets/dimension-notification.png",
     tag: String(payload.tag || "dimension-notification").slice(0, 100),
     data: { url: String(payload.url || "notifications.html") },
     renotify: true

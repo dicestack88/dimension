@@ -24,7 +24,7 @@
     pushScript.dataset.dimensionPushNotifications = "true";
     document.body.append(pushScript);
   }
-  if (!document.querySelector('script[data-dimension-notification-badge]')) {
+  if (!document.querySelector('script[src="assets/js/notification-badge.js"]')) {
     const badgeScript = document.createElement("script");
     badgeScript.src = "assets/js/notification-badge.js";
     badgeScript.dataset.dimensionNotificationBadge = "true";

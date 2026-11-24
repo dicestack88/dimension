@@ -572,13 +572,19 @@
             row.append(author, handle);
             if (item.body) row.append(body);
             const gifItem = giphyCommentMap.get(String(item.gif_id));
-            if (gifItem?.images?.original?.url) {
+            // Use a small, pre-sized GIPHY rendition. Never pull the full original
+            // into a comment thread: it can be several megabytes per animation.
+            const commentGifUrl = gifItem?.images?.fixed_width?.url
+              || gifItem?.images?.downsized_small?.url
+              || gifItem?.images?.fixed_height_small?.url;
+            if (commentGifUrl) {
               const gif = document.createElement("img");
               gif.className = "clip-comment-gif";
-              gif.src = gifItem.images.original.url;
+              gif.src = commentGifUrl;
               gif.alt = item.gif_alt || "GIPHY GIF in comment";
               gif.loading = "lazy";
               gif.decoding = "async";
+              gif.fetchPriority = "low";
               gif.addEventListener("load", () => trackGiphyAction(gifItem.analytics, "onload"), { once: true });
               gif.addEventListener("click", () => trackGiphyAction(gifItem.analytics, "onclick"));
               const attribution = giphyAttribution();

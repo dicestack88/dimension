@@ -373,6 +373,28 @@
     commentForm.className = "clip-comment-form";
     // Keep reply state scoped to this clip card; normal comments use null.
     let replyTo = null;
+    const gifButton = document.createElement("button");
+    gifButton.type = "button";
+    gifButton.className = "clip-gif-button";
+    gifButton.textContent = "GIF";
+    const gifPicker = document.createElement("div");
+    gifPicker.className = "clip-gif-picker";
+    gifPicker.hidden = true;
+    const gifSearch = document.createElement("input");
+    gifSearch.type = "search";
+    gifSearch.maxLength = 80;
+    gifSearch.placeholder = "Search GIPHY…";
+    gifSearch.setAttribute("aria-label", "Search GIPHY GIFs");
+    const gifResults = document.createElement("div");
+    gifResults.className = "clip-gif-results";
+    const gifStatus = document.createElement("p");
+    gifStatus.className = "clip-gif-status";
+    gifStatus.textContent = "Open the GIF picker to browse trending GIFs.";
+    gifPicker.append(gifSearch, gifStatus, gifResults);
+    const gifPreview = document.createElement("div");
+    gifPreview.className = "clip-gif-selected";
+    gifPreview.hidden = true;
+    let selectedGif = null;
     const commentInput = document.createElement("textarea");
     commentInput.maxLength = 500;
     commentInput.rows = 2;
@@ -382,14 +404,94 @@
     const commentSubmit = document.createElement("button");
     commentSubmit.type = "submit";
     commentSubmit.textContent = "Post";
-    commentForm.append(commentInput, commentSubmit);
-    commentsPanel.append(commentsHeader, commentsList, commentForm);
+    commentForm.append(gifButton, commentInput, commentSubmit);
+    commentsPanel.append(commentsHeader, commentsList, gifPicker, gifPreview, commentForm);
+
+    const giphyConfig = window.DIMENSION_GIPHY_CONFIG || {};
+    const getGiphyKey = () => String(giphyConfig.API_KEY || "").trim();
+    const giphyCustomerId = "dimension-" + (window.crypto?.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2));
+    const giphyAttribution = () => {
+      const link = document.createElement("a");
+      link.className = "clip-gif-attribution";
+      link.href = "https://giphy.com/";
+      link.target = "_blank";
+      link.rel = "noopener noreferrer";
+      link.textContent = "Powered by GIPHY";
+      return link;
+    };
+    const trackGiphyAction = (analytics, action) => {
+      const trackingUrl = analytics?.[action]?.url;
+      if (!trackingUrl) return;
+      try {
+        const url = new URL(trackingUrl);
+        url.searchParams.set("customer_id", giphyCustomerId);
+        url.searchParams.set("ts", String(Date.now()));
+        fetch(url.toString(), { mode: "no-cors", cache: "no-store", keepalive: true }).catch(() => {});
+      } catch (_) {}
+    };
+    const fetchGiphy = async (path, params) => {
+      const key = getGiphyKey();
+      if (!key) throw new Error("GIPHY isn't configured yet. Add the public GIPHY API key to assets/js/giphy-config.js.");
+      const url = new URL("https://api.giphy.com/v1/gifs" + (path ? "/" + path : ""));
+      url.search = new URLSearchParams({ api_key: key, rating: "g", ...params }).toString();
+      const response = await fetch(url.toString(), { headers: { Accept: "application/json" }, cache: "no-store" });
+      const payload = await response.json();
+      if (!response.ok || payload.meta?.status !== 200) throw new Error(payload.meta?.msg || "GIPHY is temporarily unavailable.");
+      return payload;
+    };
+    const renderGiphyResults = async query => {
+      const payload = query
+        ? await fetchGiphy("search", { q: query.slice(0, 50), limit: "12", bundle: "messaging_non_clips" })
+        : await fetchGiphy("trending", { limit: "12", bundle: "messaging_non_clips" });
+      const results = payload.data || [];
+      gifResults.replaceChildren();
+      gifStatus.textContent = results.length ? "Choose a GIF to add to your comment." : "No GIFs found. Try another search.";
+      gifPicker.querySelectorAll(".clip-gif-attribution").forEach(node => node.remove());
+      gifPicker.append(giphyAttribution());
+      for (const item of results) {
+        const previewUrl = item.images?.fixed_height_small?.url || item.images?.fixed_width_small?.url || item.images?.original?.url;
+        const choice = document.createElement("button"); choice.type = "button"; choice.className = "clip-gif-choice";
+        const image = document.createElement("img"); image.src = previewUrl || ""; image.alt = item.title || "GIPHY GIF"; image.loading = "lazy";
+        choice.append(image); choice.setAttribute("aria-label", "Use GIF: " + (item.title || "GIF"));
+        choice.addEventListener("click", () => {
+          trackGiphyAction(item.analytics, "onclick");
+          selectedGif = { provider: "giphy", id: String(item.id), title: String(item.title || "GIPHY GIF").slice(0, 100), analytics: item.analytics };
+          gifPreview.replaceChildren();
+          const preview = document.createElement("img"); preview.src = previewUrl || ""; preview.alt = selectedGif.title;
+          preview.addEventListener("load", () => trackGiphyAction(item.analytics, "onload"), { once: true });
+          gifPreview.append(preview, giphyAttribution());
+          const remove = document.createElement("button"); remove.type = "button"; remove.textContent = "Remove GIF";
+          remove.addEventListener("click", () => { selectedGif = null; gifPreview.hidden = true; gifPreview.replaceChildren(); });
+          gifPreview.append(remove); gifPreview.hidden = false; gifPicker.hidden = true; gifButton.textContent = "GIF selected";
+        });
+        gifResults.append(choice);
+      }
+    };
+    const renderGifResults = async query => {
+      gifResults.replaceChildren();
+      gifStatus.textContent = "Searching GIPHY…";
+      try {
+        await renderGiphyResults(query);
+      } catch (error) {
+        gifResults.replaceChildren();
+        gifStatus.textContent = error.message || "GIPHY search is unavailable.";
+      }
+    };
+    gifButton.addEventListener("click", () => {
+      gifPicker.hidden = !gifPicker.hidden;
+      if (!gifPicker.hidden && !gifResults.children.length) renderGifResults(gifSearch.value.trim());
+    });
+    let gifSearchTimer;
+    gifSearch.addEventListener("input", () => {
+      clearTimeout(gifSearchTimer);
+      gifSearchTimer = setTimeout(() => renderGifResults(gifSearch.value.trim()), 250);
+    });
 
     const loadComments = async () => {
       commentsList.replaceChildren();
       const loading = document.createElement("p"); loading.className = "clip-comments-empty"; loading.textContent = "Loading comments…"; commentsList.append(loading);
       const [{ data, error }, { data: heartRows, error: heartError }, { data: ownRole, error: ownRoleError }] = await Promise.all([
-        client.from("clip_comments").select("id, user_id, body, created_at, parent_comment_id").eq("clip_id", clip.id).order("created_at", { ascending: true }).limit(150),
+        client.from("clip_comments").select("id, user_id, body, gif_provider, gif_id, gif_alt, created_at, parent_comment_id").eq("clip_id", clip.id).order("created_at", { ascending: true }).limit(150),
         client.from("clip_comment_likes").select("comment_id, user_id").limit(1000),
         client.from("dimension_member_roles").select("role").eq("user_id", currentUser.id).maybeSingle()
       ]);
@@ -401,6 +503,19 @@
         const {data:authors}=await client.from("profiles").select("id,username,display_name").in("id",ids);
         const {data:authorRoles,error:authorRolesError}=await client.from("dimension_member_roles").select("user_id,role").in("user_id",ids);
         if(authorRolesError)throw authorRolesError;
+        const giphyCommentMap = new Map();
+        const giphyIds = [...new Set(data.filter(item => item.gif_provider === "giphy" && item.gif_id).map(item => String(item.gif_id)))];
+        if (giphyIds.length && getGiphyKey()) {
+          for (let offset = 0; offset < giphyIds.length; offset += 100) {
+            try {
+              const batch = giphyIds.slice(offset, offset + 100);
+              const payload = await fetchGiphy("", { ids: batch.join(",") });
+              for (const gifItem of payload.data || []) giphyCommentMap.set(String(gifItem.id), gifItem);
+            } catch (error) {
+              console.warn("GIPHY comment lookup failed:", error.message);
+            }
+          }
+        }
         const authorRoleMap=new Map((authorRoles||[]).map(row=>[row.user_id,row.role]));
         const authorMap=new Map((authors||[]).map(author=>[author.id,{...author,role:authorRoleMap.get(author.id)||"member"}]));
         const roots=data.filter(item=>!item.parent_comment_id);
@@ -453,7 +568,41 @@
             controls.append(report);
           }
           if(!isReply){const reply=document.createElement("button");reply.type="button";reply.className="clip-comment-control";reply.textContent="Reply";reply.addEventListener("click",()=>{replyTo=item.id;commentInput.placeholder="Replying to "+(authorProfile?.display_name||"comment")+"…";commentInput.focus();commentSubmit.textContent="Reply";});controls.append(reply);}
-          row.append(author,handle,body,controls);
+          if (item.gif_provider === "giphy" && item.gif_id) {
+            row.append(author, handle);
+            if (item.body) row.append(body);
+            const gifItem = giphyCommentMap.get(String(item.gif_id));
+            if (gifItem?.images?.original?.url) {
+              const gif = document.createElement("img");
+              gif.className = "clip-comment-gif";
+              gif.src = gifItem.images.original.url;
+              gif.alt = item.gif_alt || "GIPHY GIF in comment";
+              gif.loading = "lazy";
+              gif.decoding = "async";
+              gif.addEventListener("load", () => trackGiphyAction(gifItem.analytics, "onload"), { once: true });
+              gif.addEventListener("click", () => trackGiphyAction(gifItem.analytics, "onclick"));
+              const attribution = giphyAttribution();
+              if (gifItem.url) attribution.href = gifItem.url;
+              row.append(gif, attribution);
+              if (gifItem.user?.username) {
+                const creator = document.createElement("a");
+                creator.className = "clip-gif-attribution";
+                creator.href = gifItem.user.profile_url || gifItem.url || "https://giphy.com/";
+                creator.target = "_blank";
+                creator.rel = "noopener noreferrer";
+                creator.textContent = "by " + (gifItem.user.display_name || "@" + gifItem.user.username);
+                row.append(creator);
+              }
+            } else {
+              const unavailable = document.createElement("p");
+              unavailable.className = "clip-gif-status";
+              unavailable.textContent = "GIPHY GIF unavailable";
+              row.append(unavailable);
+            }
+            row.append(controls);
+          } else {
+            row.append(author, handle, body, controls);
+          }
           if(!isReply){for(const child of replies.get(item.id)||[])row.append(renderComment(child,true));}
           return row;
         };
@@ -473,18 +622,22 @@
     commentForm.addEventListener("submit", async event => {
       event.preventDefault();
       const body = commentInput.value.trim();
-      if (!body || commentSubmit.disabled) return;
+      if ((!body && !selectedGif) || commentSubmit.disabled) return;
       commentSubmit.disabled = true;
       commentSubmit.textContent = "Posting…";
       try {
-        // Bound the database request so a stalled network cannot leave the
-        // composer permanently showing "Posting…".
         const insertController = new AbortController();
         const insertTimeout = window.setTimeout(() => insertController.abort(), 20000);
         let insertResult;
         try {
           insertResult = await client.from("clip_comments").insert({
-            clip_id: clip.id, user_id: currentUser.id, body, parent_comment_id: replyTo
+            clip_id: clip.id,
+            user_id: currentUser.id,
+            body,
+            parent_comment_id: replyTo,
+            gif_provider: selectedGif?.provider || null,
+            gif_id: selectedGif?.id || null,
+            gif_alt: selectedGif?.title || null
           }).abortSignal(insertController.signal);
         } finally {
           window.clearTimeout(insertTimeout);
@@ -496,15 +649,19 @@
           return;
         }
 
-        // The insert succeeded. Reset the composer immediately; refreshing the
-        // thread must never keep the Post button stuck in its loading state.
+        if (selectedGif?.provider === "giphy") {
+          trackGiphyAction(selectedGif.analytics, "onsent");
+        }
         commentInput.value = "";
+        selectedGif = null;
+        gifPreview.hidden = true;
+        gifPreview.replaceChildren();
+        gifButton.textContent = "GIF";
         replyTo = null;
         commentInput.placeholder = "Add a comment…";
         commentSubmit.textContent = "Post";
         commentSubmit.disabled = false;
 
-        // Refresh independently so a slow profile lookup cannot block posting.
         loadComments().catch(error => {
           console.error("Dimension comment refresh failed:", error);
           say("Your comment was posted, but the comments couldn't refresh. Reload the page to see it.");

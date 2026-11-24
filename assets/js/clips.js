@@ -504,7 +504,7 @@
         commentSubmit.textContent = "Post";
         commentSubmit.disabled = false;
 
-        // Refresh independently so a slow profile/GIPHY lookup cannot block posting.
+        // Refresh independently so a slow profile lookup cannot block posting.
         loadComments().catch(error => {
           console.error("Dimension comment refresh failed:", error);
           say("Your comment was posted, but the comments couldn't refresh. Reload the page to see it.");

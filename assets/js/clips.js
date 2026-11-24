@@ -401,7 +401,7 @@
         const {data:authors}=await client.from("profiles").select("id,username,display_name").in("id",ids);
         const {data:authorRoles,error:authorRolesError}=await client.from("dimension_member_roles").select("user_id,role").in("user_id",ids);
         if(authorRolesError)throw authorRolesError;
-GIPHY comment lookup        const authorRoleMap=new Map((authorRoles||[]).map(row=>[row.user_id,row.role]));
+        const authorRoleMap=new Map((authorRoles||[]).map(row=>[row.user_id,row.role]));
         const authorMap=new Map((authors||[]).map(author=>[author.id,{...author,role:authorRoleMap.get(author.id)||"member"}]));
         const roots=data.filter(item=>!item.parent_comment_id);
         const replies=new Map();

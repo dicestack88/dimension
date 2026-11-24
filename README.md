@@ -45,17 +45,10 @@ Open index.html in a browser, or serve this folder with a local HTTP server. Sup
 https://dicestack88.github.io/dimension/
 
 
-## GIF comments and device notifications
+## Device notifications
 
-The clip feed supports threaded comments with GIFs from a provider-agnostic comment schema. Migration `021_giphy_comment_support.sql` extends migration 020 to support GIPHY IDs alongside legacy Tenor records, and migration 020 also adds per-device Web Push subscriptions.
+Migration 020 adds per-device Web Push subscriptions. Configure the Netlify environment variables and Supabase Vault secrets described in the `dicestack-netlify-api` repository README, then deploy the updated Netlify API.
 
-Before enabling these features:
-
-1. Run migration 020 in the linked Supabase project's SQL editor (if it has not already been applied).
-2. Run migration 021 in the linked Supabase project's SQL editor to enable GIPHY comment references.
-3. Configure the Netlify environment variables and Supabase Vault secrets described in the `dicestack-netlify-api` repository README.
-4. Deploy the updated Netlify API.
-5. Push notifications require a supported browser, a secure context, and explicit permission. On iPhone/iPad, install Dimension to the Home Screen before enabling push.
-6. GIF search first tries the Netlify proxy route (currently the legacy Tenor endpoint). If it is unavailable, the picker automatically falls back to GIPHY directly from the browser. Configure the public GIPHY API key in `assets/js/giphy-config.js`. GIPHY requests and media are loaded directly from GIPHY; they are never proxied or cached by Dimension. The Netlify route retains its 3 MB media cap for providers that permit proxying.
+Push notifications require a supported browser, a secure context, and explicit permission. On iPhone/iPad, install Dimension to the Home Screen before enabling push.
 
 The in-app notification badge and notification centre use Supabase Realtime after migration 020 is applied. Browser push is delivered separately through the Netlify function and VAPID configuration.
